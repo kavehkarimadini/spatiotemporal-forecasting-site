@@ -583,11 +583,12 @@
 
   /* ── Stat cards ── */
   function initStats() {
-    const best = D.models.find((m) => m.best);
     const el = document.getElementById("hero-stats");
     if (!el) return;
+    const bestRolling = D.rollingOrigin.find((r) => r.modelId === "model_3");
+    const bestAvgR2 = bestRolling ? bestRolling.avg : avgR2("model_3");
     el.innerHTML =
-      '<div class="stat-card"><div class="value">' + fmt(avgR2("model_3")) + '</div><div class="label">Best avg R² (NA-LSTM+aux)</div></div>' +
+      '<div class="stat-card"><div class="value">' + fmt(bestAvgR2) + '</div><div class="label">Best avg R² (NA-LSTM+aux)</div></div>' +
       '<div class="stat-card"><div class="value">25</div><div class="label">Years of data (2000–2024)</div></div>' +
       '<div class="stat-card"><div class="value">5</div><div class="label">Model configurations</div></div>' +
       '<div class="stat-card"><div class="value">10</div><div class="label">Spectral indices</div></div>' +
