@@ -45,8 +45,9 @@
           const raw = ds._actualValues ? ds._actualValues[i] : ds.data[i];
           if (raw == null) return;
           const clipped = ds._wasClipped ? ds._wasClipped[i] : false;
+          if (!clipped) return;
           const decimals = ds._labelDecimals ?? 3;
-          const label = Number(raw).toFixed(decimals) + (clipped ? "*" : "");
+          const label = Number(raw).toFixed(decimals);
           const x = isHorizontal ? element.x + 24 : element.x;
           const y = isHorizontal ? element.y : element.y - 12;
           ctx.fillText(label, x, y);
@@ -71,15 +72,30 @@
   function capSeries(values, metricKey) {
     const cap = METRIC_CAPS[metricKey];
     if (!cap) {
-      return { values: [...values], clipped: values.map(() => false), min: undefined, max: undefined, decimals: 3 };
+      return {
+        values: [...values],
+        clipped: values.map(() => false),
+        decimals: 3,
+        scaleMin: undefined,
+        scaleMax: undefined,
+        hasClipped: false
+      };
     }
-    const clipped = [];
-    const capped = values.map((v) => {
-      const next = Math.max(cap.min, Math.min(cap.max, v));
-      clipped.push(next !== v);
-      return next;
-    });
-    return { values: capped, clipped, min: cap.min, max: cap.max, decimals: cap.decimals };
+    const clipped = values.map((v) => v < cap.min || v > cap.max);
+    const display = values.map((v, i) =>
+      clipped[i] ? Math.max(cap.min, Math.min(cap.max, v)) : v
+    );
+    const hasClipped = clipped.some(Boolean);
+    const scaleMin = clipped.some((c, i) => c && values[i] < cap.min) ? cap.min : undefined;
+    const scaleMax = clipped.some((c, i) => c && values[i] > cap.max) ? cap.max : undefined;
+    return {
+      values: display,
+      clipped,
+      decimals: cap.decimals,
+      scaleMin,
+      scaleMax,
+      hasClipped
+    };
   }
 
   /* ── Progress & nav ── */
@@ -268,9 +284,12 @@
         },
         scales: {
           y: {
-            min: capped.min,
-            max: capped.max,
-            title: { display: true, text: metricKey.toUpperCase() + " (* = capped)" },
+            min: capped.scaleMin,
+            max: capped.scaleMax,
+            title: {
+              display: true,
+              text: metricKey.toUpperCase() + (capped.hasClipped ? " (labels = out-of-range values)" : "")
+            },
             grid: { color: "rgba(0,0,0,0.06)" }
           },
           x: { grid: { display: false } }
@@ -340,9 +359,12 @@
           scales: {
             x: { stacked: false, grid: { display: false } },
             y: {
-              min: cappedInfo.min,
-              max: cappedInfo.max,
-              title: { display: true, text: key.toUpperCase() + " (* = capped)" },
+              min: cappedInfo.scaleMin,
+              max: cappedInfo.scaleMax,
+              title: {
+                display: true,
+                text: key.toUpperCase() + (cappedInfo.hasClipped ? " (labels = out-of-range values)" : "")
+              },
               grid: { color: "rgba(0,0,0,0.06)" }
             }
           }
