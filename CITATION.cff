@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software or the associated benchmark results, please cite the paper below."
+title: "Spatio-temporal forecasting benchmark: neighbor-augmenting LSTM and graph attention models"
+type: software
+authors:
+  - family-names: Karimadini
+    given-names: Kaveh
+    email: kaveh.karimadini@students.mq.edu.au
+    affiliation: School of Computing, Macquarie University
+  - family-names: Pourebrahim
+    given-names: Sharareh
+    email: shararehp@sunway.edu.my
+    affiliation: Jeffrey Sachs Center on Sustainable Development, Sunway University
+license: MIT
+repository-code: "https://github.com/kavehkarimadini/Spatio_temporal_Time_Series_Forecasting"
+url: "https://doi.org/10.1038/s41598-026-56762-5"
+abstract: >-
+  Unified benchmarking code for neighborhood-augmented LSTM, GAT–LSTM, and
+  GAT–Temporal Attention models for long-term geospatial forecasting on annual
+  Landsat data (2000–2023 train/val, 2024 unseen test).
+keywords:
+  - spatio-temporal forecasting
+  - LSTM
+  - graph attention network
+  - Landsat
+  - environmental modeling
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Karimadini
+      given-names: Kaveh
+    - family-names: Pourebrahim
+      given-names: Sharareh
+  title: "Simulation of long-term spatio-temporal environmental dynamics using a unified benchmark of neighbor augmenting, LSTM and graph attention models"
+  journal: Scientific Reports
+  year: 2026
+  month: 6
+  day: 12
+  doi: "10.1038/s41598-026-56762-5"
+  url: "https://doi.org/10.1038/s41598-026-56762-5"
+  publisher:
+    name: Springer Nature

@@ -1,0 +1,18 @@
+name: landsat-spatiotemporal
+channels:
+  - pytorch
+  - pyg
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - scipy
+  - xarray
+  - netcdf4
+  - matplotlib
+  - scikit-learn
+  - pip
+  - pip:
+      - torch>=2.0
+      - torch-geometric>=2.3

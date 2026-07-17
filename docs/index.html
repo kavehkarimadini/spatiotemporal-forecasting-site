@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spatio-Temporal Environmental Forecasting Benchmark</title>
+  <meta name="description" content="Unified benchmark of neighbor-augmenting LSTM and graph attention models for long-term Landsat forecasting." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --bg-deep: #e6e1d4;
+      --ink: #1c2420;
+      --muted: #4d5a53;
+      --accent: #0f6b5c;
+      --accent-soft: #c8e4dc;
+      --card: #fffdf8;
+      --line: #cfc7b6;
+      --max: 960px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "IBM Plex Sans", sans-serif;
+      line-height: 1.6;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, #d7ebe4 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, #efe4c8 0%, transparent 50%),
+        linear-gradient(180deg, var(--bg) 0%, #ebe6db 100%);
+      min-height: 100vh;
+    }
+    a { color: var(--accent); }
+    header {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 3.5rem 1.25rem 2rem;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 0 0 0.75rem;
+    }
+    h1 {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.2;
+      margin: 0 0 1rem;
+      max-width: 18ch;
+    }
+    .lede {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 62ch;
+      margin: 0 0 1.5rem;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .chip {
+      background: var(--accent-soft);
+      color: #0a4a3f;
+      border: 1px solid #9fcbbd;
+      border-radius: 999px;
+      padding: 0.35rem 0.8rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      padding: 0.7rem 1.1rem;
+      border-radius: 0.4rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #f7fffc;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    nav {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 1.25rem 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.95rem;
+      border-bottom: 1px solid var(--line);
+    }
+    nav a { text-decoration: none; color: var(--muted); font-weight: 500; }
+    nav a:hover { color: var(--accent); }
+    main {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+    section { margin: 2.75rem 0; }
+    h2 {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 1.7rem;
+      margin: 0 0 0.75rem;
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin: 1.5rem 0 0.5rem;
+      color: var(--accent);
+    }
+    p, li { color: var(--muted); }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.6rem;
+      padding: 1rem 1.1rem;
+    }
+    .card strong { color: var(--ink); display: block; margin-bottom: 0.35rem; }
+    figure {
+      margin: 1.25rem 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.6rem;
+      padding: 0.75rem;
+    }
+    figure img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 0.3rem;
+    }
+    figcaption {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-top: 0.6rem;
+      padding: 0 0.25rem 0.25rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 0.6rem;
+      overflow: hidden;
+      font-size: 0.92rem;
+    }
+    th, td {
+      padding: 0.7rem 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+    th { background: var(--bg-deep); color: var(--ink); }
+    td { color: var(--muted); }
+    tr:last-child td { border-bottom: none; }
+    .highlight {
+      background: #e8f4ef;
+      border-left: 4px solid var(--accent);
+      padding: 0.9rem 1rem;
+      margin: 1rem 0;
+      border-radius: 0 0.4rem 0.4rem 0;
+    }
+    pre {
+      background: #1c2420;
+      color: #e8f0eb;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+    }
+    footer {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Scientific Reports · 2026</p>
+    <h1>Long-term spatio-temporal environmental dynamics</h1>
+    <p class="lede">
+      A unified benchmarking framework comparing neighborhood-augmented LSTM,
+      GAT–LSTM, and GAT–Temporal Attention models for one-year-ahead Landsat
+      forecasting over the Klang River Basin (2000–2023 train, 2024 unseen test).
+    </p>
+    <div class="meta">
+      <span class="chip">NA-LSTM best · R² ≈ 0.95</span>
+      <span class="chip">Open source · MIT</span>
+      <span class="chip">Paper · CC BY-NC-ND 4.0</span>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="https://doi.org/10.1038/s41598-026-56762-5">Read the paper</a>
+      <a class="btn btn-secondary" href="https://github.com/kavehkarimadini/Spatio_temporal_Time_Series_Forecasting">GitHub repository</a>
+      <a class="btn btn-secondary" href="https://github.com/kavehkarimadini/Spatio_temporal_Time_Series_Forecasting/blob/main/CITATION.cff">Cite this work</a>
+    </div>
+  </header>
+
+  <nav>
+    <a href="#intro">Introduction</a>
+    <a href="#architectures">Architectures</a>
+    <a href="#results">Results</a>
+    <a href="#reproduce">Reproduce</a>
+    <a href="#cite">Citation</a>
+  </nav>
+
+  <main>
+    <section id="intro">
+      <h2>Introduction</h2>
+      <p>
+        Rapid environmental change increases the need for reliable long-horizon geospatial
+        forecasts. Nonlinear dynamics, local spatial dependence, and external drivers make
+        single-architecture solutions hard to trust without controlled comparison.
+      </p>
+      <p>
+        This project does <em>not</em> introduce a new neural network family. Instead it
+        provides an engineering benchmark that evaluates three complementary paradigms under
+        the same preprocessing, training, and evaluation pipeline:
+      </p>
+      <div class="grid-2">
+        <div class="card">
+          <strong>NA-LSTM</strong>
+          Cellular-automata style 3×3 neighborhood augmentation with LSTM temporal modeling,
+          with and without auxiliary covariates (NDVI, DEM, slope, road distance).
+        </div>
+        <div class="card">
+          <strong>GAT–LSTM</strong>
+          Graph attention for adaptive spatial aggregation, followed by LSTM temporal processing.
+        </div>
+        <div class="card">
+          <strong>GAT–Temporal Attention</strong>
+          Fully attention-based stack: GAT for space and Transformer-style temporal
+          self-attention, evaluated with and without an MLP / feed-forward block.
+        </div>
+        <div class="card">
+          <strong>Study area</strong>
+          Klang River Basin, Peninsular Malaysia — annual multi-band Landsat (2000–2024)
+          with dynamic and static auxiliaries.
+        </div>
+      </div>
+      <div class="highlight">
+        Key finding: strong temporal modeling plus auxiliary environmental information
+        mattered more than increasing spatial-attention complexity. NA-LSTM with auxiliaries
+        was the most accurate and stable configuration (average R² ≈ 0.95 on the 2024 holdout).
+      </div>
+    </section>
+
+    <section id="architectures">
+      <h2>Model architectures</h2>
+      <p>
+        All models share the same annual raster stack and one-step-ahead pairing
+        (predict year <em>t</em>+1 from year <em>t</em>). They differ only in how local
+        neighborhoods / graphs and temporal dependencies are encoded.
+      </p>
+
+      <h3>Neighborhood-Augmented LSTM</h3>
+      <figure>
+        <img src="assets/NA_LSTM_Architecture.png" alt="NA-LSTM architecture diagram" />
+        <figcaption>Figure — NA-LSTM pipeline: 3×3 neighborhood unfolding, optional auxiliaries, LSTM transition learning.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/lstm_architecture_flow_v2.png" alt="LSTM neighborhood flow" />
+        <figcaption>Figure — Detailed NA-LSTM / neighborhood feature flow.</figcaption>
+      </figure>
+
+      <h3>GAT + Temporal Attention</h3>
+      <figure>
+        <img src="assets/GAT_Attention_Architecture.png" alt="GAT Temporal Attention architecture" />
+        <figcaption>Figure — GAT spatial attention followed by temporal self-attention (± MLP).</figcaption>
+      </figure>
+
+      <h3>Model mapping overview</h3>
+      <figure>
+        <img src="assets/model_mapping_chart.png" alt="Model mapping chart" />
+        <figcaption>Figure — Mapping of benchmarked model families and configurations.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/model_mapping_table.png" alt="Model mapping table" />
+        <figcaption>Figure — Configuration table for neighborhood, GAT–LSTM, and attention variants.</figcaption>
+      </figure>
+    </section>
+
+    <section id="results">
+      <h2>Results (2023 → 2024 holdout)</h2>
+      <p>
+        Performance is reported with global pixel-wise metrics (R², RMSE, MAE, MAPE,
+        correlation) and index-wise breakdowns. Vegetation- and water-related indices were
+        generally more predictable than noisier spectral combinations.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Model family (representative)</th>
+            <th>Highlight</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>NA-LSTM + auxiliaries</td>
+            <td>Best overall accuracy and stability (R² ≈ 0.95)</td>
+          </tr>
+          <tr>
+            <td>GAT–Temporal Attention + MLP</td>
+            <td>Second-best overall; stronger relative noise robustness in some stress tests</td>
+          </tr>
+          <tr>
+            <td>GAT–Temporal Attention without MLP / LSTM–GAT hybrids</td>
+            <td>Less stable; weaker or negative R² on several indices</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Scatter agreement</h3>
+      <div class="grid-2">
+        <figure>
+          <img src="assets/scatter_plot_lstm_with_aux.png" alt="NA-LSTM with auxiliaries scatter" />
+          <figcaption>NA-LSTM with auxiliary inputs — tight 1:1 agreement.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/scatter_plot_lstm_without_aux.png" alt="NA-LSTM without auxiliaries scatter" />
+          <figcaption>NA-LSTM without auxiliaries.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/scatter_plot_GAT_Attention_1_1.png" alt="GAT attention 1-1 scatter" />
+          <figcaption>GAT–Temporal Attention (S-GAT=1, T=1).</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/scatter_plot_GAT_Attention_2_1.png" alt="GAT attention 2-1 scatter" />
+          <figcaption>GAT–Temporal Attention (S-GAT=2, T=1).</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/scatter_plot_GAT_Attention_with_aux_1_1.png" alt="GAT attention with auxiliaries" />
+          <figcaption>GAT–Temporal Attention with auxiliaries.</figcaption>
+        </figure>
+      </div>
+
+      <h3>Metric comparison across indices</h3>
+      <figure>
+        <img src="assets/R_squared_grouped_bar.png" alt="R-squared grouped bar chart" />
+        <figcaption>R² across models and spectral indices.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/RMSE_grouped_bar.png" alt="RMSE grouped bar chart" />
+        <figcaption>RMSE across models and spectral indices.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/MAE_grouped_bar.png" alt="MAE grouped bar chart" />
+        <figcaption>MAE across models and spectral indices.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/Correlation_grouped_bar.png" alt="Correlation grouped bar chart" />
+        <figcaption>Pearson correlation across models and spectral indices.</figcaption>
+      </figure>
+      <figure>
+        <img src="assets/MAPE_grouped_bar.png" alt="MAPE grouped bar chart" />
+        <figcaption>MAPE (sensitive near zero-valued indices).</figcaption>
+      </figure>
+      <div class="grid-2">
+        <figure>
+          <img src="assets/Mean_Diff_grouped_bar.png" alt="Mean difference grouped bars" />
+          <figcaption>Mean prediction difference diagnostics.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/Std_Dif_grouped_bar.png" alt="Std difference grouped bars" />
+          <figcaption>Standard deviation of prediction differences.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="reproduce">
+      <h2>Reproduce</h2>
+      <p>
+        Place annual NetCDF stacks under <code>data/</code>
+        (<code>landsat20*.nc</code>, optional <code>ndvi20*.nc</code>, plus
+        <code>dem.nc</code>, <code>slope.nc</code>, <code>road_dis.nc</code>).
+      </p>
+<pre><code>pip install -r requirements.txt
+
+# Best paper configuration (NA-LSTM + auxiliaries)
+python main.py --model nalstm --use-ndvi --use-static-features --no-downsample
+
+# GAT–Temporal Attention with MLP / FFN
+python main.py --model gattemporalattention --use-feed-forward --use-ndvi --use-static-features
+
+# Optional noise robustness analysis
+python uncertainty.py --model gattemporalattention \
+  --checkpoint-path checkpoints/your_model.pth \
+  --perturbation-mode noise --use-feed-forward</code></pre>
+      <p>
+        Full CLI details and citation instructions live in the repository
+        <a href="https://github.com/kavehkarimadini/Spatio_temporal_Time_Series_Forecasting">README</a>.
+      </p>
+    </section>
+
+    <section id="cite">
+      <h2>Citation</h2>
+      <p>Please cite the Scientific Reports article when using this code or reporting results:</p>
+<pre><code>@article{Karimadini2026SpatioTemporal,
+  author  = {Karimadini, Kaveh and Pourebrahim, Sharareh},
+  title   = {Simulation of long-term spatio-temporal environmental dynamics using a unified benchmark of neighbor augmenting, LSTM and graph attention models},
+  journal = {Scientific Reports},
+  year    = {2026},
+  doi     = {10.1038/s41598-026-56762-5},
+  url     = {https://doi.org/10.1038/s41598-026-56762-5}
+}</code></pre>
+      <p>
+        Software license: MIT. Article license:
+        <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/">CC BY-NC-ND 4.0</a>.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Kaveh Karimadini (Macquarie University) &amp; Sharareh Pourebrahim (Sunway University).
+      Funding acknowledged in the paper (Sunway University GRTIN-RAG (02)-JSC-01-2024).
+    </p>
+    <p>
+      Project pages for
+      <a href="https://github.com/kavehkarimadini/Spatio_temporal_Time_Series_Forecasting">Spatio_temporal_Time_Series_Forecasting</a>.
+      Enable GitHub Pages from the <code>/docs</code> folder to publish this site.
+    </p>
+  </footer>
+</body>
+</html>
