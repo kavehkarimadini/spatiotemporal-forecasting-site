@@ -13,8 +13,49 @@
   };
 
   const MODEL_LABELS = Object.fromEntries(D.models.map((m) => [m.id, m.short + ": " + m.name]));
+  const METRIC_CAPS = {
+    r2: { min: -1, max: 1, decimals: 3 },
+    correlation: { min: -1, max: 1, decimals: 3 },
+    rmse: { min: 0, max: 1, decimals: 3 },
+    mae: { min: 0, max: 0.4, decimals: 3 },
+    mape: { min: 0, max: 200, decimals: 1 },
+    meanDiff: { min: -0.3, max: 0.3, decimals: 3 },
+    stdDiff: { min: 0, max: 0.5, decimals: 3 }
+  };
 
   let metricChart, rollingChart, noiseChart, radarChart;
+
+  /* Draw value labels directly on bars/points */
+  const valueLabelPlugin = {
+    id: "valueLabelPlugin",
+    afterDatasetsDraw(chart) {
+      const { ctx, data, options } = chart;
+      const isHorizontal = options.indexAxis === "y";
+      ctx.save();
+      ctx.font = "11px 'IBM Plex Sans', sans-serif";
+      ctx.fillStyle = "#1a221e";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      data.datasets.forEach((ds, dsIndex) => {
+        const meta = chart.getDatasetMeta(dsIndex);
+        if (!meta || meta.hidden) return;
+
+        meta.data.forEach((element, i) => {
+          const raw = ds._actualValues ? ds._actualValues[i] : ds.data[i];
+          if (raw == null) return;
+          const clipped = ds._wasClipped ? ds._wasClipped[i] : false;
+          const decimals = ds._labelDecimals ?? 3;
+          const label = Number(raw).toFixed(decimals) + (clipped ? "*" : "");
+          const x = isHorizontal ? element.x + 24 : element.x;
+          const y = isHorizontal ? element.y : element.y - 12;
+          ctx.fillText(label, x, y);
+        });
+      });
+      ctx.restore();
+    }
+  };
+  Chart.register(valueLabelPlugin);
 
   /* ── Utilities ── */
   function avgR2(modelId) {
@@ -25,6 +66,20 @@
   function fmt(n, d = 3) {
     if (n == null || Number.isNaN(n)) return "—";
     return Number(n).toFixed(d);
+  }
+
+  function capSeries(values, metricKey) {
+    const cap = METRIC_CAPS[metricKey];
+    if (!cap) {
+      return { values: [...values], clipped: values.map(() => false), min: undefined, max: undefined, decimals: 3 };
+    }
+    const clipped = [];
+    const capped = values.map((v) => {
+      const next = Math.max(cap.min, Math.min(cap.max, v));
+      clipped.push(next !== v);
+      return next;
+    });
+    return { values: capped, clipped, min: cap.min, max: cap.max, decimals: cap.decimals };
   }
 
   /* ── Progress & nav ── */
@@ -176,6 +231,8 @@
     const higherBetter = ["r2", "correlation"].includes(metricKey);
     rows.sort((a, b) => higherBetter ? b.value - a.value : a.value - b.value);
 
+    const rawValues = rows.map((r) => r.value);
+    const capped = capSeries(rawValues, metricKey);
     if (metricChart) metricChart.destroy();
     metricChart = new Chart(ctx, {
       type: "bar",
@@ -183,7 +240,10 @@
         labels: rows.map((r) => r.label),
         datasets: [{
           label: metricKey.toUpperCase(),
-          data: rows.map((r) => r.value),
+          data: capped.values,
+          _actualValues: rawValues,
+          _wasClipped: capped.clipped,
+          _labelDecimals: capped.decimals,
           backgroundColor: rows.map((r) => MODEL_COLORS[r.id] + "cc"),
           borderColor: rows.map((r) => MODEL_COLORS[r.id]),
           borderWidth: 1.5,
@@ -197,13 +257,19 @@
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (c) => metricKey.toUpperCase() + ": " + fmt(c.raw, metricKey === "mape" ? 1 : 3)
+              label: (c) => {
+                const actual = c.dataset._actualValues?.[c.dataIndex] ?? c.raw;
+                const wasClipped = c.dataset._wasClipped?.[c.dataIndex];
+                return metricKey.toUpperCase() + ": " + fmt(actual, capped.decimals) + (wasClipped ? " (capped in chart)" : "");
+              }
             }
           }
         },
         scales: {
           y: {
-            title: { display: true, text: metricKey.toUpperCase() },
+            min: capped.min,
+            max: capped.max,
+            title: { display: true, text: metricKey.toUpperCase() + " (* = capped)" },
             grid: { color: "rgba(0,0,0,0.06)" }
           },
           x: { grid: { display: false } }
@@ -221,16 +287,35 @@
     function render() {
       const key = sel.value;
       const indices = D.indices;
-      const datasets = D.models.map((m) => ({
-        label: m.short,
-        data: indices.map((idx) => {
+      const rawByModel = D.models.map((m) =>
+        indices.map((idx) => {
           const row = D.metrics.find((r) => r.modelId === m.id && r.index === idx);
           return row ? row[key] : null;
-        }),
-        backgroundColor: MODEL_COLORS[m.id] + "bb",
-        borderColor: MODEL_COLORS[m.id],
-        borderWidth: 1
-      }));
+        })
+      );
+      const flatValues = rawByModel.flat().filter((v) => v != null);
+      const cappedInfo = capSeries(flatValues, key);
+      let ptr = 0;
+
+      const datasets = D.models.map((m, modelIdx) => {
+        const rawData = rawByModel[modelIdx];
+        const data = rawData.map((v) => (v == null ? null : cappedInfo.values[ptr++]));
+        let clipPtr = ptr - data.filter((v) => v != null).length;
+        const clipped = rawData.map((v) => {
+          if (v == null) return false;
+          return cappedInfo.clipped[clipPtr++];
+        });
+        return {
+          label: m.short,
+          data,
+          _actualValues: rawData,
+          _wasClipped: clipped,
+          _labelDecimals: cappedInfo.decimals,
+          backgroundColor: MODEL_COLORS[m.id] + "bb",
+          borderColor: MODEL_COLORS[m.id],
+          borderWidth: 1
+        };
+      });
 
       if (window._groupedChart) window._groupedChart.destroy();
       window._groupedChart = new Chart(ctx, {
@@ -239,10 +324,26 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } } },
+          plugins: {
+            legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: (c) => {
+                  const actual = c.dataset._actualValues?.[c.dataIndex] ?? c.raw;
+                  const clipped = c.dataset._wasClipped?.[c.dataIndex];
+                  return `${c.dataset.label}: ${fmt(actual, cappedInfo.decimals)}${clipped ? " (capped in chart)" : ""}`;
+                }
+              }
+            }
+          },
           scales: {
             x: { stacked: false, grid: { display: false } },
-            y: { title: { display: true, text: key.toUpperCase() }, grid: { color: "rgba(0,0,0,0.06)" } }
+            y: {
+              min: cappedInfo.min,
+              max: cappedInfo.max,
+              title: { display: true, text: key.toUpperCase() + " (* = capped)" },
+              grid: { color: "rgba(0,0,0,0.06)" }
+            }
           }
         }
       });
