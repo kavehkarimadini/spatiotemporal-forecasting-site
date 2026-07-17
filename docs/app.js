@@ -205,6 +205,7 @@
     indexSel.value = "all";
 
     [modelSel, indexSel, metricSel].forEach((el) => el.addEventListener("change", updateMetricChart));
+    modelSel.addEventListener("change", () => updateRadarChart(modelSel.value));
     updateMetricChart();
   }
 
