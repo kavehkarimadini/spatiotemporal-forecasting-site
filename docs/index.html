@@ -28,6 +28,9 @@
     <aside class="sidebar">
       <nav>
         <div class="nav-group">Overview</div>
+        <a href="#problem">Problem &amp; why better</a>
+        <a href="#novelty">What's novel</a>
+        <a href="#methods-overview">Methodology figures</a>
         <a href="#abstract">Abstract</a>
         <a href="#interactive">Interactive Explorer</a>
         <div class="nav-group">Paper</div>
@@ -64,7 +67,7 @@
           <strong>Sharareh Pourebrahim</strong> (Sunway University)*
         </p>
         <div class="chips">
-          <span class="chip">NA-LSTM best · R² ≈ 0.95</span>
+          <span class="chip">Best rolling avg R² = 0.913</span>
           <span class="chip">Klang River Basin · 2000–2024</span>
           <span class="chip">CC BY-NC-ND 4.0</span>
           <span class="chip">Open source · MIT</span>
@@ -76,6 +79,97 @@
           <a class="btn btn-secondary" href="#interactive">Explore results interactively</a>
         </div>
       </div>
+
+      <section id="problem">
+        <h2>What problem we solve — and why this is better</h2>
+        <div class="grid-2">
+          <div class="card">
+            <strong>Problem</strong>
+            Environmental managers need one-year-ahead satellite forecasts, but most papers invent a new model instead of showing which approach actually works under a fair, unseen-year test.
+          </div>
+          <div class="card">
+            <strong>Why better</strong>
+            Same data, same train/test split, same metrics — then pick the winner. A simple NA-LSTM with auxiliaries beat larger graph-attention models while using ~3–4× fewer parameters.
+          </div>
+        </div>
+      </section>
+
+      <section id="novelty">
+        <h2>Why this work is novel</h2>
+        <ul class="novelty-list">
+          <li><strong>Not a new architecture</strong> — a controlled engineering benchmark of neighborhood LSTM vs graph-attention under one pipeline.</li>
+          <li><strong>True unseen year</strong> — train on 2000–2023, test only on 2023→2024 (plus rolling years for stability).</li>
+          <li><strong>Fair comparison</strong> — identical preprocessing, normalization, loss, and pixel-wise metrics for every model.</li>
+          <li><strong>Practical takeaway</strong> — temporal memory + auxiliary drivers (NDVI, DEM, slope, roads) matter more than adding complex spatial attention.</li>
+        </ul>
+
+        <h3>Is R² ≈ 0.91–0.95 good?</h3>
+        <p>Yes — but only in context. R² = 1 is perfect prediction; R² = 0 means no better than predicting the mean; negative R² means worse than the mean.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Approach</th>
+                <th>Avg R² (context)</th>
+                <th>What it means</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>NA-LSTM + auxiliaries (this paper)</td>
+                <td class="positive">0.913 rolling · ~0.95 holdout</td>
+                <td>Strong one-year-ahead skill; best and most stable</td>
+              </tr>
+              <tr>
+                <td>GAT–Temporal Attention + MLP</td>
+                <td>0.814–0.880 rolling</td>
+                <td>Competitive second place; more parameters</td>
+              </tr>
+              <tr>
+                <td>NA-LSTM without auxiliaries</td>
+                <td>0.740 rolling</td>
+                <td>Still useful — auxiliaries add a large jump (+0.17)</td>
+              </tr>
+              <tr>
+                <td>Attention without MLP / weak hybrids</td>
+                <td>~0.34 or lower on many indices</td>
+                <td>Often fails; sometimes worse than a mean baseline</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="highlight">
+          So 0.913 is not just a high number — it is clearly better than the next best family in this benchmark, and far above configurations that collapse toward chance-level or negative R².
+        </div>
+      </section>
+
+      <section id="methods-overview">
+        <h2>Methodology at a glance</h2>
+        <p>Figure 1 — the two main pipelines compared in this study.</p>
+        <div class="figure-gallery">
+          <figure>
+            <img src="assets/NA_LSTM_Architecture.png" alt="NA-LSTM architecture pipeline" />
+            <figcaption>Figure 1a — NA-LSTM: 3×3 neighborhood + LSTM (+ optional auxiliaries).</figcaption>
+          </figure>
+          <figure>
+            <img src="assets/GAT_Attention_Architecture.png" alt="GAT Temporal Attention architecture pipeline" />
+            <figcaption>Figure 1b — GAT–Temporal Attention: graph attention + temporal self-attention (± MLP).</figcaption>
+          </figure>
+        </div>
+        <div class="pipeline">
+          <div class="pipeline-step" data-tip="Annual NetCDF rasters 2000–2024, aligned grid">Data ingestion</div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-step" data-tip="Channel-wise min–max [0,1], zero-fill missing">Normalization</div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-step" data-tip="X_t → Y_{t+1} pairs; 2023→2024 held out">Temporal pairing</div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-step" data-tip="3×3 CA unfold OR 4-connected graph">Spatial encoding</div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-step" data-tip="LSTM, GAT–LSTM, or GAT–Attention">Model</div>
+          <span class="pipeline-arrow">→</span>
+          <div class="pipeline-step" data-tip="R², RMSE, MAE, MAPE, correlation">Vectorized eval</div>
+        </div>
+      </section>
 
       <!-- ABSTRACT -->
       <section id="abstract">
@@ -104,9 +198,6 @@
           attention complexity.
         </div>
         <p><strong>Keywords:</strong> Spatio-temporal forecasting; Geospatial time series; LSTM; Graph Attention Network (GAT); Environmental monitoring.</p>
-        <p><strong>Novelty:</strong> This work does not introduce a new neural network family — it provides a comparative
-        engineering experiment assessing when neighborhood-based temporal models can be superior to graph-attention
-        models in geospatial long-range prediction.</p>
       </section>
 
       <!-- INTERACTIVE -->
@@ -278,22 +369,8 @@
           The framework comprises: (i) harmonized spatio-temporal preprocessing, (ii) spatial feature construction via CA
           neighborhood encoding or graph attention, (iii) temporal modeling via LSTM or multi-head self-attention,
           (iv) supervised one-step-ahead training with Huber loss, and (v) post-processing with vectorized multi-band
-          evaluation.
+          evaluation. Pipeline diagrams are shown in <a href="#methods-overview">Methodology at a glance</a>.
         </p>
-
-        <div class="pipeline">
-          <div class="pipeline-step" data-tip="Annual NetCDF rasters 2000–2024, aligned grid">Data ingestion</div>
-          <span class="pipeline-arrow">→</span>
-          <div class="pipeline-step" data-tip="Channel-wise min–max [0,1], zero-fill missing">Normalization</div>
-          <span class="pipeline-arrow">→</span>
-          <div class="pipeline-step" data-tip="X_t → Y_{t+1} pairs; 2023→2024 held out">Temporal pairing</div>
-          <span class="pipeline-arrow">→</span>
-          <div class="pipeline-step" data-tip="3×3 CA unfold OR 4-connected graph">Spatial encoding</div>
-          <span class="pipeline-arrow">→</span>
-          <div class="pipeline-step" data-tip="LSTM, GAT–LSTM, or GAT–Attention">Model</div>
-          <span class="pipeline-arrow">→</span>
-          <div class="pipeline-step" data-tip="R², RMSE, MAE, MAPE, correlation">Vectorized eval</div>
-        </div>
       </section>
 
       <section id="study-area">
@@ -306,8 +383,8 @@
           spatio-temporal forecasting.
         </p>
         <figure>
-          <img src="assets/study_area_map.png" alt="Klang River Basin study area map" />
-          <figcaption>Figure 2 — Study area: Klang River Basin, Peninsular Malaysia (ArcGIS Pro 3.5.2).</figcaption>
+          <img src="assets/map_study_area.jpg" alt="Klang River Basin study area map showing regional context and DEM" />
+          <figcaption>Figure 2 — Study area: Klang River Basin, Peninsular Malaysia. (A–B) regional context; (C) basin DEM and river network.</figcaption>
         </figure>
       </section>
 
@@ -409,28 +486,20 @@
         <h3>2.6 LSTM-Based Forecasting Model</h3>
         <p>Standard LSTM gates (equations 6–11): input, forget, cell, output gates with sigmoid/tanh activations.</p>
         <div class="eq">ŷ<sub>t+1</sub> = σ(W<sub>o</sub>(ReLU(W<sub>h</sub>h<sub>t</sub> + b<sub>h</sub>)) + b<sub>o</sub>) <span class="eq-num">(12)</span></div>
-        <p>Huber loss (equation 13) balances MSE-like behavior with outlier robustness. Predictions denormalized via inverse min–max (equation 15).</p>
-        <figure>
-          <img src="assets/NA_LSTM_Architecture.png" alt="NA-LSTM architecture" />
-          <figcaption>Figure 1a — Full pipeline of the NA-LSTM modeling framework.</figcaption>
-        </figure>
+        <p>Huber loss (equation 13) balances MSE-like behavior with outlier robustness. Predictions denormalized via inverse min–max (equation 15). See <a href="#methods-overview">methodology figures</a> at the top for the full NA-LSTM pipeline.</p>
       </section>
 
       <section id="graph-models">
         <h3>2.8 Graph-Based Spatio-Temporal Models</h3>
         <p>
           Raster grids converted to graphs G = (V, E): each pixel is a node (|V| = H×W), edges via 4-connectivity.
-          Sparse COO edge indices; batch size 1 for memory efficiency.
+          Sparse COO edge indices; batch size 1 for memory efficiency. See <a href="#methods-overview">methodology figures</a> for the GAT–Temporal Attention pipeline.
         </p>
         <h4>GAT attention coefficients</h4>
         <div class="eq">e<sub>ij,t</sub> = LeakyReLU(a<sup>T</sup>[Wh<sub>i,t</sub> ∥ Wh<sub>j,t</sub>]) <span class="eq-num">(18)</span></div>
         <div class="eq">α<sub>ij,t</sub> = exp(e<sub>ij,t</sub>) / Σ<sub>k∈N(i)</sub> exp(e<sub>ik,t</sub>) <span class="eq-num">(19)</span></div>
         <div class="eq">Attention(Q,K,V) = softmax(QK<sup>T</sup>/√d<sub>k</sub>)V <span class="eq-num">(24)</span></div>
         <div class="eq">FFN(x) = W<sub>2</sub>φ(W<sub>1</sub>x + b<sub>1</sub>) + b<sub>2</sub> <span class="eq-num">(25)</span></div>
-        <figure>
-          <img src="assets/GAT_Attention_Architecture.png" alt="GAT Temporal Attention architecture" />
-          <figcaption>Figure 1b — Full pipeline of the GAT–Temporal Attention modelling framework.</figcaption>
-        </figure>
         <figure>
           <img src="assets/model_mapping_chart.png" alt="Model mapping chart" />
           <figcaption>Model family mapping overview.</figcaption>

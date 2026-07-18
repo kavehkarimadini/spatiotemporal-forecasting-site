@@ -196,6 +196,15 @@ h3 { font-size: 1.15rem; color: var(--accent); margin: 1.75rem 0 0.6rem; }
 h4 { font-size: 1rem; margin: 1.25rem 0 0.5rem; color: var(--ink); }
 p, li { color: var(--muted); }
 ul, ol { padding-left: 1.25rem; }
+.novelty-list {
+  margin: 0.75rem 0 1.25rem;
+  padding-left: 1.2rem;
+}
+.novelty-list li {
+  margin: 0.55rem 0;
+  line-height: 1.5;
+}
+.novelty-list strong { color: var(--ink); }
 
 /* Cards & grids */
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin: 1rem 0; }
